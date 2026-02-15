@@ -54,33 +54,36 @@ avalon_structure_proc : process (clock)
 			if s_read = '1' and  then
 				next_state <= READING;
 				m_read <= '1';
+				--set up for memory / cache check
 				
 			elsif s_write = '1' then
 				next_state <= WRITING;
 				m_write <= '1';
-				
+				--set up for write
 			else	
 				next_state <= IDLE;
 			end if;
 			
 		when READING =>
-			
+			--here we need to check valid and dirty bit
+			--cache check first before memory
 			if m_waitrequest = '0' then
 				next_state <= READ_READY;
 				s_waitrequest <= '0';
 				--set s_waitrequest to 0
 			else	
 				next_state <= READING;
+				
 			end if;
 			
 		when READ_READY =>
-		
+			
 			next_state <= IDLE;
 			s_waitrequest <= '1';
 			
 			
 		when WRITING =>
-		
+			--check for tag match
 			if m_waitrequest = '1' then
 				next_state <= WRITING;
 			else	
