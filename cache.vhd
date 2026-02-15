@@ -57,6 +57,7 @@ avalon_structure_proc : process (clock)
 				
 			elsif s_write = '1' then
 				next_state <= WRITING;
+				m_write <= '1';
 				
 			else	
 				next_state <= IDLE;
@@ -64,23 +65,27 @@ avalon_structure_proc : process (clock)
 			
 		when READING =>
 			
-			if m_waitrequest = '1' then
+			if m_waitrequest = '0' then
 				next_state <= READ_READY;
+				s_waitrequest <= '0';
 				--set s_waitrequest to 0
 			else	
 				next_state <= READING;
 			end if;
 			
-		when READ_READY =>	
+		when READ_READY =>
+		
 			next_state <= IDLE;
 			s_waitrequest <= '1';
 			
 			
 		when WRITING =>
+		
 			if m_waitrequest = '1' then
 				next_state <= WRITING;
 			else	
 				next_state <= IDLE;
+				s_waitrequest => '0';
 			end if;
 		when others =>
 			next_state => IDLE;
