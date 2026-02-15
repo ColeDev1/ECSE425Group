@@ -117,6 +117,11 @@ avalon_structure_proc : process (clock)
 			
 		when WRITE_MEM =>
 			-- must read 16 bytes and then write our new byte into the cache;
+			if access is complete then 
+				next_state <= IDLE;
+			else
+				next_state <= WRITE_MEM;
+			end if;
 		
 			
 	end case;
