@@ -31,6 +31,17 @@ architecture arch of cache is
 type state_type is (IDLE,READING,READ_READY,WRITING,READ_MISS,READ_HIT,WRITE_MISS,WRITE_HIT,WRITE_MEM,READ_MEM);
 signal state: state_type;
 signal next_state: state_type;
+
+type memory_access_states is (
+    mem_1, mem_2, mem_3, mem_4, 
+    mem_5, mem_6, mem_7, mem_8, 
+    mem_9, mem_10, mem_11, mem_12, 
+    mem_13, mem_14, mem_15, mem_16
+);
+signal mem_state: memory_access_states;
+signal next_mem_state : memory_access_states;
+
+--signal memory_addr: std_logic_vector (31 downto 0);
 -- declare signals here
 
 begin
@@ -50,6 +61,7 @@ avalon_structure_proc : process (clock)
 
 	case state is
 		when IDLE =>
+			s_waitrequest <= '1';
 			if s_read = '1' then 
 				next_state <= READING;
 			elsif s_write = '1' then
@@ -57,7 +69,8 @@ avalon_structure_proc : process (clock)
 			else
 				next_state <= IDLE;
 			end if;
-		when READING =>			
+		when READING =>	
+			--condition here must be combinational logic between s_addr(31 downto something) and cacheArray(something downto 31 less than something)
 			if valid = '1' and match then
 				next_state <= READ_HIT;
 			else	
@@ -73,6 +86,165 @@ avalon_structure_proc : process (clock)
 			--this state is setting up 16 memory accesses
 			--figure out where we are in realtion to the 16 bytes in a cache line // block
 			--set the addr to the first byte then in read mem we just need to do 16 sequential reads 
+			
+			--get start addr
+			case next_mem_state is 
+				when mem_1 => 
+					m_addr <= s_addr(31 downto 4) & "0000";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_2;
+						-- write to cache here
+					end if;
+
+				when mem_2 => 
+					m_addr <= s_addr(31 downto 4) & "0001";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_3;
+						-- write to cache here
+					end if;
+
+				when mem_3 => 
+					m_addr <= s_addr(31 downto 4) & "0010";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_4;
+						-- write to cache here
+					end if;
+
+				when mem_4 => 
+					m_addr <= s_addr(31 downto 4) & "0011";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_5;
+						-- write to cache here
+					end if;
+
+				when mem_5 => 
+					m_addr <= s_addr(31 downto 4) & "0100";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_6;
+						-- write to cache here
+					end if;
+
+				when mem_6 => 
+					m_addr <= s_addr(31 downto 4) & "0101";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_7;
+						-- write to cache here
+					end if;
+
+				when mem_7 => 
+					m_addr <= s_addr(31 downto 4) & "0110";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_8;
+						-- write to cache here
+					end if;
+
+				when mem_8 => 
+					m_addr <= s_addr(31 downto 4) & "0111";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_9;
+						-- write to cache here
+					end if;
+
+				when mem_9 => 
+					m_addr <= s_addr(31 downto 4) & "1000";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_10;
+						-- write to cache here
+					end if;
+
+				when mem_10 => 
+					m_addr <= s_addr(31 downto 4) & "1001";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_11;
+						-- write to cache here
+					end if;
+
+				when mem_11 => 
+					m_addr <= s_addr(31 downto 4) & "1010";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_12;
+						-- write to cache here
+					end if;
+
+				when mem_12 => 
+					m_addr <= s_addr(31 downto 4) & "1011";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_13;
+						-- write to cache here
+					end if;
+
+				when mem_13 => 
+					m_addr <= s_addr(31 downto 4) & "1100";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_14;
+						-- write to cache here
+					end if;
+
+				when mem_14 => 
+					m_addr <= s_addr(31 downto 4) & "1101";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_15;
+						-- write to cache here
+					end if;
+
+				when mem_15 => 
+					m_addr <= s_addr(31 downto 4) & "1110";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_16;
+						-- write to cache here
+					end if;
+
+				when mem_16 => 
+					m_addr <= s_addr(31 downto 4) & "1111";
+					m_read <= '1';
+					next_state <= READ_MISS;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_1;
+						next_state <= READ_READY; -- Transaction complete
+						m_read <= '0';
+						-- write to cache here
+						s_readdata <= write to output here
+						--maybe set s_waitrequest to '0' here
+						s_waitrequest <= '0';
+						--set output word to cache set
+					end if;
+
+				when others => 
+					next_mem_state <= mem_1;
+					next_state <= IDLE;
+			end case;
+			
+		--the below state is likely not needed	
 		when READ_MEM =>
 			--this state is 16 accesses
 			--then place them in cache
@@ -88,7 +260,7 @@ avalon_structure_proc : process (clock)
 		when READ_READY =>
 			--this state is to create a 1 clock cycle buffer to read the read data
 			next_state <= IDLE;
-			s_waitrequest <='1'; --maybe need to put somewhere else
+			 --maybe need to put somewhere else
 		
 		when WRITING =>
 			--check for tag match
@@ -117,11 +289,161 @@ avalon_structure_proc : process (clock)
 			
 		when WRITE_MEM =>
 			-- must read 16 bytes and then write our new byte into the cache;
-			if access is complete then 
-				next_state <= IDLE;
-			else
-				next_state <= WRITE_MEM;
-			end if;
+			case next_mem_state is 
+				when mem_1 => 
+					m_addr <= s_addr(31 downto 4) & "0000";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_2;
+						--Read from cache here --write to mem here
+					end if;
+
+				when mem_2 => 
+					m_addr <= s_addr(31 downto 4) & "0001";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_3;
+						--Read from cache here --write to mem here
+					end if;
+
+				when mem_3 => 
+					m_addr <= s_addr(31 downto 4) & "0010";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_4;
+						--Read from cache here 
+						--write to mem here
+					end if;
+
+				when mem_4 => 
+					m_addr <= s_addr(31 downto 4) & "0011";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_5;
+						--Read from cache here --write to mem here
+					end if;
+
+				when mem_5 => 
+					m_addr <= s_addr(31 downto 4) & "0100";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_6;
+						--Read from cache here --write to mem here
+					end if;
+
+				when mem_6 => 
+					m_addr <= s_addr(31 downto 4) & "0101";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_7;
+						--Read from cache here --write to mem here
+					end if;
+
+				when mem_7 => 
+					m_addr <= s_addr(31 downto 4) & "0110";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_8;
+						--Read from cache here --write to mem here
+					end if;
+
+				when mem_8 => 
+					m_addr <= s_addr(31 downto 4) & "0111";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_9;
+						--Read from cache here --write to mem here
+					end if;
+
+				when mem_9 => 
+					m_addr <= s_addr(31 downto 4) & "1000";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_10;
+						--Read from cache here --write to mem here
+					end if;
+
+				when mem_10 => 
+					m_addr <= s_addr(31 downto 4) & "1001";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_11;
+						--Read from cache here --write to mem here
+					end if;
+
+				when mem_11 => 
+					m_addr <= s_addr(31 downto 4) & "1010";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_12;
+						--Read from cache here --write to mem here
+					end if;
+
+				when mem_12 => 
+					m_addr <= s_addr(31 downto 4) & "1011";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_13;
+						--Read from cache here --write to mem here
+					end if;
+
+				when mem_13 => 
+					m_addr <= s_addr(31 downto 4) & "1100";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_14;
+						--Read from cache here --write to mem here
+					end if;
+
+				when mem_14 => 
+					m_addr <= s_addr(31 downto 4) & "1101";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_15;
+						--Read from cache here --write to mem here
+					end if;
+
+				when mem_15 => 
+					m_addr <= s_addr(31 downto 4) & "1110";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_16;
+						--Read from cache here --write to mem here
+					end if;
+
+				when mem_16 => 
+					m_addr <= s_addr(31 downto 4) & "1111";
+					m_write <= '1';
+					next_state <= WRITE_MEM;
+					if (m_waitrequest = '0') then
+						next_mem_state <= mem_1;
+						next_state <= IDLE; -- Transaction complete
+						m_write <= '0';
+						--Read from cache here --write to mem here
+						--maybe set s_waitrequest to '0' here
+						s_waitrequest <= '0';
+						--set output word to cache set
+					end if;
+
+				when others => 
+					next_mem_state <= mem_1;
+					next_state <= IDLE;
+			end case;
 		
 			
 	end case;
