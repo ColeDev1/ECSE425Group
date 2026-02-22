@@ -8,10 +8,6 @@ generic(
 	cache_size_byte : INTEGER := 512; -- Bytes
 	num_of_blocks: INTEGER := 32;
 	block_size : INTEGER := 128; -- bits
-	
-	cache_delay : time := 10 ns;
-	clock_period : time := 1 ns
-
 );
 port(
 	clock : in std_logic;
@@ -51,8 +47,6 @@ architecture arch of cache is
 --access the below array simply like this cache_block(block #)(line indices)
 TYPE CACHE IS ARRAY(num_of_blocks-1 downto 0) OF STD_LOGIC_VECTOR(135 downto 0);
 signal cache_block: CACHE; 
-signal write_waitreq_reg: STD_LOGIC := '1';
-signal read_waitreq_reg: STD_LOGIC := '1';
 
 type state_type is (IDLE,READING,READ_READY,WRITING,MISS,READ_HIT,WRITE_HIT, EVICTION);
 signal state: state_type;
@@ -103,10 +97,16 @@ begin
 			end if;
 			
 		when READING =>	
-			--condition here must be combinational logic between s_addr(31 downto something) and cacheArray(something downto 31 less than something)
-			if cache_block(block_number)(135) = '1' and cache_block(block_number)(133 downto 128) = s_addr(14 downto 9) then -- valid plus tag match 
+			
+			if cache_block(block_number)(135) = '1' -- Valid
+				and cache_block(block_number)(133 downto 128) = s_addr(14 downto 9) -- Tag Mismatch 
+				then
+				-- valid plus tag match 
 				next_state <= READ_HIT;
-			elsif (cache_block(block_number)(135) = '1' and cache_block(block_number)(133 downto 128) /= s_addr(14 downto 9) and cache_block(block_number)(135) = '1') then  --tag mismatch and dirty
+			elsif (cache_block(block_number)(135) = '1' -- Valid
+				   and cache_block(block_number)(133 downto 128) /= s_addr(14 downto 9) -- Tag Mismatch
+				   and cache_block(block_number)(134) = '1') -- Dirty
+				   then
 				--write to main memory
 				next_state <= EVICTION;
 				next_mem_state <= mem_1;
@@ -130,7 +130,7 @@ begin
 			s_waitrequest <= '0';
 			
 		when MISS =>
-		--within this state there are 16 sub states, these represent stalling
+		--within this state there are 16 sub states, these represent stall due to reading from memory
 		-- because memory only output bytes and we only write 4 words at a time we must go through all the bytes.
 		
 			case next_mem_state is 
@@ -305,10 +305,11 @@ begin
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
+						-- Done Reading
 						next_mem_state <= mem_1;
 						
 						m_read <= '0';
-						cache_block(block_number)(135 downto 134) <= "10"; 
+						cache_block(block_number)(135 downto 134) <= "10"; -- Valid = 1 & Dirty = 0
 						cache_block(block_number)(127 downto 120) <= m_readdata;
 						
 						if (Read_NotWrite = '1') then
@@ -328,6 +329,7 @@ begin
 						end if;
 						
 					else
+						-- reading is not done (m_waitrequest = 1)
 						next_mem_state <= mem_16;
 					end if;
 
@@ -335,7 +337,7 @@ begin
 					next_mem_state <= mem_1;
 					next_state <= IDLE;
 
-			end case;			
+			end case; -- next_mem_state
 				
 		when READ_READY =>
 			--this state is to create a 1 clock cycle buffer to read the read_data
@@ -570,8 +572,7 @@ begin
 						
 						next_state <= MISS;
 						m_write <= '0';
-						s_waitrequest <= '0';
-						cache_block(block_number)(135) <= '0'; --set dirty to 0
+						cache_block(block_number)(134) <= '0'; --set dirty to 0
 					else
 						next_mem_state <= mem_16;
 					end if;
@@ -585,9 +586,15 @@ begin
 		
 		when WRITING =>
 			
-			if cache_block(block_number)(135) = '1' and cache_block(block_number)(133 downto 128) = s_addr(14 downto 9) then
+			if cache_block(block_number)(135) = '1' -- Valid
+				and cache_block(block_number)(133 downto 128) = s_addr(14 downto 9) -- Tag Match
+				then
 				next_state <= WRITE_HIT;
-			elsif cache_block(block_number)(135) = '1' and cache_block(block_number)(133 downto 128) /= s_addr(14 downto 9) and cache_block(block_number)(135) = '1' then
+				
+			elsif cache_block(block_number)(135) = '1' -- Valid
+			 	 	and cache_block(block_number)(133 downto 128) /= s_addr(14 downto 9) -- Tag mismatch
+			 		and cache_block(block_number)(134) = '1' -- Dirty
+			 		then
 				next_state <= EVICTION;
 			else -- valid = 0,	
 				next_state <= MISS;
@@ -595,7 +602,8 @@ begin
 		
 		when WRITE_HIT =>
 			--write to cache 
-			--set dirty bit to 1
+			next_state <= IDLE;
+			
 			if s_addr(3 downto 2) = "00" then
 				cache_block(block_number)(31 downto 0) <= s_writedata;
 			elsif s_addr(3 downto 2) = "01" then
@@ -605,7 +613,9 @@ begin
 			elsif s_addr(3 downto 2) = "11" then
 				cache_block(block_number)(127 downto 96) <= s_writedata;
 			end if;
-			cache_block(block_number)(135) <= '1';
+			
+			cache_block(block_number)(134) <= '1'; --set dirty bit to 1
+			s_waitrequest <= '0';
 			
 	end case;
 end process avalon_structure_proc;
