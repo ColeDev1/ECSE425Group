@@ -7,7 +7,7 @@ generic(
 	ram_size : INTEGER := 32768; -- Bytes
 	cache_size_byte : INTEGER := 512; -- Bytes
 	num_of_blocks: INTEGER := 32;
-	block_size : INTEGER := 128; -- bits
+	block_size : INTEGER := 128 -- bits
 );
 port(
 	clock : in std_logic;
