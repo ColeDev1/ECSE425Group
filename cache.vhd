@@ -4,7 +4,14 @@ use ieee.numeric_std.all;
 
 entity cache is
 generic(
-	ram_size : INTEGER := 32768;
+	ram_size : INTEGER := 32768; -- Bytes
+	cache_size : INTEGER := 512; -- Bytes
+	num_of_blocks: INTEGER := 32;
+	block_size : INTEGER := 128; -- bits
+	
+	cache_delay : time := 10 ns;
+	clock_period : time := 1 ns
+
 );
 port(
 	clock : in std_logic;
@@ -18,6 +25,7 @@ port(
 	s_writedata : in std_logic_vector (31 downto 0);
 	s_waitrequest : out std_logic; 
     
+    -- Memory 
 	m_addr : out integer range 0 to ram_size-1;
 	m_read : out std_logic;
 	m_readdata : in std_logic_vector (7 downto 0);
@@ -28,21 +36,28 @@ port(
 end cache;
 
 architecture arch of cache is
+TYPE CACHE IS ARRAY(cache_size-1 downto 0) OF STD_LOGIC_VECTOR(135 DOWNTO 0);
+signal cache_block: CACHE: 
+signal write_waitreq_reg: STD_LOGIC := '1';
+signal read_waitreq_reg: STD_LOGIC := '1';
+SIGNAL read_address_reg: INTEGER RANGE 0 to cache_size-1;
+
 type state_type is (IDLE,READING,READ_READY,WRITING,READ_MISS,READ_HIT,WRITE_MISS,WRITE_HIT,WRITE_MEM,READ_MEM);
 signal state: state_type;
 signal next_state: state_type;
 
-type memory_access_states is (
+-- Sub-FSM for moving blocks
+type memory_access_state is (
     mem_1, mem_2, mem_3, mem_4, 
     mem_5, mem_6, mem_7, mem_8, 
     mem_9, mem_10, mem_11, mem_12, 
     mem_13, mem_14, mem_15, mem_16
 );
-signal mem_state: memory_access_states;
-signal next_mem_state : memory_access_states;
+signal mem_state: memory_access_state := mem_1;
+signal next_mem_state : memory_access_state;
 
---signal memory_addr: std_logic_vector (31 downto 0);
--- declare signals here
+
+
 
 begin
 
@@ -55,20 +70,22 @@ begin
 		state <= next_state;
 	end if;
 end process;
---state
---four states
-avalon_structure_proc : process (clock)
 
+avalon_structure_proc : process (state)
+variable tag_match: STD_LOGIC;
+
+begin
 	case state is
 		when IDLE =>
 			s_waitrequest <= '1';
 			if s_read = '1' then 
 				next_state <= READING;
 			elsif s_write = '1' then
-				next_state <=WRITING;
+				next_state <= WRITING;
 			else
 				next_state <= IDLE;
 			end if;
+			
 		when READING =>	
 			--condition here must be combinational logic between s_addr(31 downto something) and cacheArray(something downto 31 less than something)
 			if valid = '1' and match then
@@ -258,7 +275,7 @@ avalon_structure_proc : process (clock)
 			--could be for loop here to access the 16 bytes
 			
 		when READ_READY =>
-			--this state is to create a 1 clock cycle buffer to read the read data
+			--this state is to create a 1 clock cycle buffer to read the read_data
 			next_state <= IDLE;
 			 --maybe need to put somewhere else
 		
@@ -444,7 +461,24 @@ avalon_structure_proc : process (clock)
 					next_mem_state <= mem_1;
 					next_state <= IDLE;
 			end case;
-		
-			
 	end case;
+end process avalon_structure_proc;
+
+-- waitrequest control processes for read and write
+waitreq_w_proc: PROCESS (s_write)
+	BEGIN
+		IF(s_write'event AND s_write = '1')THEN
+			write_waitreq_reg <= '0' after cache_delay, '1' after cache_delay + clock_period;
+		END IF;
+	END PROCESS;
+
+	waitreq_r_proc: PROCESS (s_read)
+	BEGIN
+		IF(memread'event AND s_read = '1')THEN
+			read_waitreq_reg <= '0' after cache_delay, '1' after cache_delay + clock_period;
+		END IF;
+	END PROCESS;
+	-- Final waitrequest, determined by the read and write states.
+	waitrequest <= write_waitreq_reg AND read_waitreq_reg;
+
 end arch;
