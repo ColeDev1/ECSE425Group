@@ -30,7 +30,7 @@ port(
 	s_waitrequest : out std_logic; 
     
     -- Memory 
-	m_addr : out std_logic_vector(31 downto 0); --integer range 0 to ram_size-1;
+	m_addr : out integer range 0 to ram_size-1;
 	m_read : out std_logic;
 	m_readdata : in std_logic_vector (7 downto 0);
 	m_write : out std_logic;
@@ -40,21 +40,21 @@ port(
 end cache;
 
 architecture arch of cache is
---(136 = valid)
---(135 = Dirty)
---(134-128 = tag)
+--(135 = valid)
+--(134 = Dirty)
+--(133-128 = tag)
 --(127-0 = DATA )
 --(127-96 byte 3)
 --(95-64 byte 2)
 --(63-32 byte 1)
 --(31-0 byte 0)
 --access the below array simply like this cache_block(block #)(line indices)
-TYPE CACHE IS ARRAY(num_of_blocks-1 downto 0) OF STD_LOGIC_VECTOR(136 downto 0);
+TYPE CACHE IS ARRAY(num_of_blocks-1 downto 0) OF STD_LOGIC_VECTOR(135 downto 0);
 signal cache_block: CACHE; 
 signal write_waitreq_reg: STD_LOGIC := '1';
 signal read_waitreq_reg: STD_LOGIC := '1';
 
-type state_type is (IDLE,READING,READ_READY,WRITING,MISS,READ_HIT,WRITE_MISS,WRITE_HIT,WRITE_MEM, EVICTION, WRITE_EVICTION);
+type state_type is (IDLE,READING,READ_READY,WRITING,MISS,READ_HIT,WRITE_HIT, EVICTION);
 signal state: state_type;
 signal next_state: state_type;
 
@@ -90,7 +90,7 @@ begin
 	case state is
 		when IDLE =>
 			s_waitrequest <= '1';
-			block_number <= to_integer(unsigned(s_addr(8 downto 4)));
+			block_number <= to_integer(unsigned(std_logic_vector'(s_addr(8 downto 4))));
 			if s_read = '1' then 
 				next_state <= READING;
 				Read_NotWrite <= '1';
@@ -104,9 +104,9 @@ begin
 			
 		when READING =>	
 			--condition here must be combinational logic between s_addr(31 downto something) and cacheArray(something downto 31 less than something)
-			if cache_block(block_number)(136) = '1' and cache_block(block_number)(134 downto 128) = s_addr(15 downto 9) then -- valid plus tag match 
+			if cache_block(block_number)(135) = '1' and cache_block(block_number)(133 downto 128) = s_addr(14 downto 9) then -- valid plus tag match 
 				next_state <= READ_HIT;
-			elsif (cache_block(block_number)(136) = '1' and cache_block(block_number)(134 downto 128) /= s_addr(15 downto 9) and cache_block(block_number)(135) = '1') then  --tag mismatch and dirty
+			elsif (cache_block(block_number)(135) = '1' and cache_block(block_number)(133 downto 128) /= s_addr(14 downto 9) and cache_block(block_number)(135) = '1') then  --tag mismatch and dirty
 				--write to main memory
 				next_state <= EVICTION;
 				next_mem_state <= mem_1;
@@ -136,7 +136,7 @@ begin
 			case next_mem_state is 
 
 				when mem_1 => 
-					m_addr <= s_addr(31 downto 4) & "0000";
+					m_addr <= to_integer(unsigned(std_logic_vector'(s_addr(14 downto 4) & "0000")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
@@ -147,7 +147,7 @@ begin
 					end if;
 
 				when mem_2 => 
-					m_addr <= s_addr(31 downto 4) & "0001";
+					m_addr <= to_integer(unsigned(std_logic_vector'( s_addr(14 downto 4) & "0001")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
@@ -158,7 +158,7 @@ begin
 					end if;
 
 				when mem_3 => 
-					m_addr <= s_addr(31 downto 4) & "0010";
+					m_addr <= to_integer(unsigned(std_logic_vector'( s_addr(14 downto 4) & "0010")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
@@ -169,7 +169,7 @@ begin
 					end if;
 
 				when mem_4 => 
-					m_addr <= s_addr(31 downto 4) & "0011";
+					m_addr <= to_integer(unsigned(std_logic_vector'( s_addr(14 downto 4) & "0011")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
@@ -180,7 +180,7 @@ begin
 					end if;
 
 				when mem_5 => 
-					m_addr <= s_addr(31 downto 4) & "0100";
+					m_addr <= to_integer(unsigned(std_logic_vector'( s_addr(14 downto 4) & "0100")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
@@ -191,7 +191,7 @@ begin
 					end if;
 
 				when mem_6 => 
-					m_addr <= s_addr(31 downto 4) & "0101";
+					m_addr <= to_integer(unsigned(std_logic_vector'( s_addr(14 downto 4) & "0101")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
@@ -202,7 +202,7 @@ begin
 					end if;
 
 				when mem_7 => 
-					m_addr <= s_addr(31 downto 4) & "0110";
+					m_addr <= to_integer(unsigned(std_logic_vector'( s_addr(14 downto 4) & "0110")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
@@ -213,7 +213,7 @@ begin
 					end if;
 
 				when mem_8 => 
-					m_addr <= s_addr(31 downto 4) & "0111";
+					m_addr <= to_integer(unsigned(std_logic_vector'( s_addr(14 downto 4) & "0111")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
@@ -224,7 +224,7 @@ begin
 					end if;
 
 				when mem_9 => 
-					m_addr <= s_addr(31 downto 4) & "1000";
+					m_addr <= to_integer(unsigned(std_logic_vector'( s_addr(14 downto 4) & "1000")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
@@ -235,7 +235,7 @@ begin
 					end if;
 
 				when mem_10 => 
-					m_addr <= s_addr(31 downto 4) & "1001";
+					m_addr <= to_integer(unsigned(std_logic_vector'( s_addr(14 downto 4) & "1001")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
@@ -246,7 +246,7 @@ begin
 					end if;
 
 				when mem_11 => 
-					m_addr <= s_addr(31 downto 4) & "1010";
+					m_addr <= to_integer(unsigned(std_logic_vector'( s_addr(14 downto 4) & "1010")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
@@ -257,7 +257,7 @@ begin
 					end if;
 
 				when mem_12 => 
-					m_addr <= s_addr(31 downto 4) & "1011";
+					m_addr <= to_integer(unsigned(std_logic_vector'( s_addr(14 downto 4) & "1011")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
@@ -268,7 +268,7 @@ begin
 					end if;
 
 				when mem_13 => 
-					m_addr <= s_addr(31 downto 4) & "1100";
+					m_addr <= to_integer(unsigned(std_logic_vector'( s_addr(14 downto 4) & "1100")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
@@ -279,7 +279,7 @@ begin
 					end if;
 
 				when mem_14 => 
-					m_addr <= s_addr(31 downto 4) & "1101";
+					m_addr <= to_integer(unsigned(std_logic_vector'( s_addr(14 downto 4) & "1101")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
@@ -290,7 +290,7 @@ begin
 					end if;
 
 				when mem_15 => 
-					m_addr <= s_addr(31 downto 4) & "1110";
+					m_addr <= to_integer(unsigned(std_logic_vector'( s_addr(14 downto 4) & "1110")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
@@ -301,14 +301,14 @@ begin
 					end if;
 
 				when mem_16 => 
-					m_addr <= "000000000000000" & s_addr(31 downto 4) & "1111";
+					m_addr <= to_integer(unsigned(std_logic_vector'( s_addr(14 downto 4) & "1111")));
 					m_read <= '1';
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_1;
 						
 						m_read <= '0';
-						cache_block(block_number)(136 downto 135) <= "10"; 
+						cache_block(block_number)(135 downto 134) <= "10"; 
 						cache_block(block_number)(127 downto 120) <= m_readdata;
 						
 						if (Read_NotWrite = '1') then
@@ -348,10 +348,10 @@ begin
 			case next_mem_state is 
 
 				when mem_1 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "0000";
+							  "0000")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(7 downto 0);
@@ -362,10 +362,10 @@ begin
 					end if;
 
 				when mem_2 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "0001";
+							  "0001")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(15 downto 8);
@@ -376,10 +376,10 @@ begin
 					end if;
 
 				when mem_3 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "0010";
+							  "0010")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(23 downto 16);
@@ -390,10 +390,10 @@ begin
 					end if;
 
 				when mem_4 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "0011";
+							  "0011")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(31 downto 24);
@@ -404,10 +404,10 @@ begin
 					end if;
 
 				when mem_5 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "0100";
+							  "0100")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(39 downto 32);
@@ -418,10 +418,10 @@ begin
 					end if;
 
 				when mem_6 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "0101";
+							  "0101")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(47 downto 40);
@@ -432,10 +432,10 @@ begin
 					end if;
 
 				when mem_7 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "0110";
+							  "0110")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(55 downto 48);
@@ -446,10 +446,10 @@ begin
 					end if;
 
 				when mem_8 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "0111";
+							  "0111")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(63 downto 56);
@@ -460,10 +460,10 @@ begin
 					end if;
 
 				when mem_9 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "1000";
+							  "1000")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(71 downto 64);
@@ -474,10 +474,10 @@ begin
 					end if;
 
 				when mem_10 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "1001";
+							  "1001")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(79 downto 72);
@@ -488,10 +488,10 @@ begin
 					end if;
 
 				when mem_11 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "1010";
+							  "1010")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(87 downto 80);
@@ -502,10 +502,10 @@ begin
 					end if;
 
 				when mem_12 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "1011";
+							  "1011")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(95 downto 88);
@@ -516,10 +516,10 @@ begin
 					end if;
 
 				when mem_13 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "1100";
+							  "1100")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(103 downto 96);
@@ -530,10 +530,10 @@ begin
 					end if;
 
 				when mem_14 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "1101";
+							  "1101")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(111 downto 104);
@@ -544,10 +544,10 @@ begin
 					end if;
 
 				when mem_15 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "1110";
+							  "1110")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(119 downto 112);
@@ -558,10 +558,10 @@ begin
 					end if;
 
 				when mem_16 => 
-					m_addr <= "000000000000000" &
-							  cache_block(block_number)(134 downto 128) &
+					m_addr <= to_integer(unsigned(std_logic_vector'( 
+							  cache_block(block_number)(133 downto 128) &
 							  s_addr(8 downto 4) &
-							  "1111";
+							  "1111")));
 					m_write <= '1';
 					next_state <= EVICTION;
 					m_writedata <= cache_block(block_number)(127 downto 120);
@@ -585,9 +585,9 @@ begin
 		
 		when WRITING =>
 			
-			if cache_block(block_number)(136) = '1' and cache_block(block_number)(134 downto 128) = s_addr(15 downto 9) then
+			if cache_block(block_number)(135) = '1' and cache_block(block_number)(133 downto 128) = s_addr(14 downto 9) then
 				next_state <= WRITE_HIT;
-			elsif cache_block(block_number)(136) = '1' and cache_block(block_number)(134 downto 128) /= s_addr(15 downto 9) and cache_block(block_number)(135) = '1' then
+			elsif cache_block(block_number)(135) = '1' and cache_block(block_number)(133 downto 128) /= s_addr(14 downto 9) and cache_block(block_number)(135) = '1' then
 				next_state <= EVICTION;
 			else -- valid = 0,	
 				next_state <= MISS;
