@@ -113,9 +113,182 @@ begin
 end process;
 
 test_process : process
+--=======================================================================================================
+	--Memory Instantiations:
+	
+	--Memory locations A and C will be mapped to the same blocks, but contain different tags 
+	
+		--Memory location A: "0x00001010" => Tag "0b001000" Idx "0b00001" Off "0b00"
+	variable A : INTEGER := 4112;
+	
+		--Memory location C: "0x00002010" => Tag "0b010000" Idx "0b00001" Off "0b00"
+	variable C : INTEGER :=	8208;
+	
+	--Memory locations B will be mapped to a different block
+	
+		--Memory location B" "0x00001020" => Tag "0b001000" Idx "0b00010" Off "0b00"
+	variable B : INTEGER := 4128;
+--=======================================================================================================	
 begin
+--=======================================================================================================
+	--Memory Population:
+	
+	--Fill Memory location A with value "0x20" (32 as an integer)
+	wait for clk_period;
+	m_addr <= A; 
+	m_writedata <= X"20";
+	m_write <= '1';
+	wait until rising_edge(m_waitrequest);
+	
+	--Fill Memory location C with value "0x52" (82 as an integer)
+	m_write <= '0';
+	m_addr <= C; 
+	m_writedata <= X"52";
+	m_write <= '1';
+	wait until rising_edge(m_waitrequest);
+	
+	--Fill Memory location B with value "0x36" (54 as an integer)
+	m_write <= '0';
+	m_addr <= B; 
+	m_writedata <= X"36";
+	m_write <= '1';
+	wait until rising_edge(m_waitrequest);
+	
+	--Reset the write flag to low
+	m_write <= '0';
+--=======================================================================================================
+	-- Test Case Execution:
+	
+	--Note: We can check rising_edge(waitrequest) to check for next time we can read/write to $
+	-- For each of the 10 tests, we will:
+	-- 1) Check that waitrequest signal is high (meaning its ready to accept a new operation initially)
+	-- 2) Setup read or write operation
+	-- 3) wait until rising_edge(waitrequest) (Indicating read data valid or write request completed)
+	-- 4) assert to check that the expected behavior occured...
 
--- put your tests here
+	--Test Case 1:
+	--Writing "00" Tag Mismatch Case: Writing to memory address B not yet in $
+	wait until s_waitrequest = '1';
+	s_addr <= std_logic_vector(to_unsigned(B, 32));
+	s_writedata <= std_logic_vector(to_unsigned(54, 32));
+	s_write <= '1';
+	wait until rising_edge(s_waitrequest);
+	
+	--For tomorrow: Figure out how the asserts work properly. Here, since we are writing, we need a way to verify that the data WAS ACTUALLY Written to $
+	assert report "Writing 00 Tag Mismatch case unsuccessful" severity error;
+	
+	s_write <= '0';
+	
+	--Test Case 2:
+	--Reading "00" Tag Mismatch Case: Reading from  memory address A not yet in $
+	wait until s_waitrequest = '1';
+	s_addr <= std_logic_vector(to_unsigned(A, 32));
+	s_read <= '1';
+	wait until rising_edge(s_waitrequest);
+	assert s_readdata = X"20" report "Reading 00 Tag Mismatch Case" severity error;
+	s_read <= '0';
+	
+	--Test Case 3:
+	--Reading "10" Tag Match Case: Reading from memory address A already in $
+	wait until s_waitrequest = '1';
+	s_addr <= std_logic_vector(to_unsigned(A, 32));
+	s_read <= '1';
+	wait until rising_edge(s_waitrequest);
+	assert s_readdata = X"20" report "Reading 10 Tag Match Case" severity error;
+	s_read <= '0';
+	
+	--Test Case 4:
+	--Writing "10" Tag Match Case: Writing to memory address A already in $
+	wait until s_waitrequest = '1';
+	s_addr <= std_logic_vector(to_unsigned(A, 32));
+	s_writedata <= std_logic_vector(to_unsigned(33, 32));
+	s_write <= '1';
+	wait until rising_edge(s_waitrequest);
+	
+	--For tomorrow: To check that write worked properly, need to read from block and check that values match :)
+	assert  report "Writing 10 Tag Match Case" severity error;
+	
+	s_write <= '0';
+	
+	--Test Case 5:
+	--Reading "11" Tag Match Case: Reading from memory address A that is dirty
+	wait until s_waitrequest = '1';
+	s_addr <= std_logic_vector(to_unsigned(A, 32));
+	s_read <= '1';
+	wait until rising_edge(s_waitrequest);
+	assert s_readdata = X"21" report "Reading 11 Tag Match Case" severity error;
+	s_read <= '0';
+	
+	--Test Case 6:
+	--Writing "11" Tag Match Case: Writing to memory address A that is dirty
+	wait until s_waitrequest = '1';
+	s_addr <= std_logic_vector(to_unsigned(A, 32));
+	s_writedata <= std_logic_vector(to_unsigned(34, 32));
+	s_write <= '1';
+	wait until rising_edge(s_waitrequest);
+	
+	--For tomorrow: To check that write worked properly, need to read from block and check that values match :)
+	assert  report "Writing 10 Tag Match Case" severity error;
+	
+	s_write <= '0';
+	
+	
+	--Test Case 7:
+	--Reading "11" Tag Mismatch Case: Reading from memory address C, need to update $
+	wait until s_waitrequest = '1';
+	s_addr <= std_logic_vector(to_unsigned(C, 32));
+	s_read <= '1';
+	wait until rising_edge(s_waitrequest);
+	
+	--Need two assertions here. One to check that cache properly takes on value in C, then one to check that dirty memory location properly updated
+	assert s_readdata = X"52" report "Reading 11 Tag Mismatch Case" severity error;
+	
+	assert report severity error;
+	
+	
+	s_read <= '0';
+	
+	--Test Case 8:
+	--Reading "10" Tag Mismatch Case: Reading from memory address A, but tag mismatch on clean block in $
+	wait until s_waitrequest = '1';
+	s_addr <= std_logic_vector(to_unsigned(A, 32));
+	s_read <= '1';
+	wait until rising_edge(s_waitrequest);
+	
+	assert s_readdata = X"22" report "Reading 10 Tag Mismatch Case" severity error;
+	s_read <= '0';
+	
+	--Test Case 9:
+	--Writing "10" Tag Mismatch Case: Writing to memory address C, but tag mismatch on clean $ block
+	wait until s_waitrequest = '1';
+	s_addr <= std_logic_vector(to_unsigned(C, 32));
+	s_writedata <= std_logic_vector(to_unsigned(83, 32));
+	s_write <= '1';
+	wait until rising_edge(s_waitrequest);
+	
+	--For tomorrow: To check that write worked properly, need to read from block and check that values match :)
+	assert  report "Writing 10 Tag Match Case" severity error;
+	
+	s_write <= '0';
+	
+	
+	--Test Case 10:
+	--Writing "11" Tag Mismatch Case: Writing to memory address A, but tag mismatch on dirty block
+	wait until s_waitrequest = '1';
+	s_addr <= std_logic_vector(to_unsigned(A, 32));
+	s_writedata <= std_logic_vector(to_unsigned(35, 32));
+	s_write <= '1';
+	wait until rising_edge(s_waitrequest);
+	
+	--For tomorrow: To check that write worked properly, need to read from block and check that values match :)
+	assert  report "Writing 10 Tag Match Case" severity error;
+	
+	s_write <= '0';
+--=======================================================================================================	
+	--end testbench
+	wait;
+--=======================================================================================================
+
 	
 end process;
 	
