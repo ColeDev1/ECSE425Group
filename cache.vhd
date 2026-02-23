@@ -79,14 +79,28 @@ process (clock, reset)
 begin
 	if reset = '1' then
 		state <= IDLE;
+		mem_state <= mem_1;
 	elsif (clock'event and clock = '1') then
 		state <= next_state;
+		mem_state <= next_mem_state;
 	end if;
 end process;
 
-avalon_structure_proc : process (state)
+-- The simulation was not updating the state so I added other triggers
+avalon_structure_proc : process (state, reset, s_addr, s_read, s_write, s_writedata,
+ m_waitrequest, m_readdata, cache_block, block_number, Read_NotWrite, next_mem_state,
+  reset)
 
 begin
+-- The simulation was showing U for these signals, adding default values solved this
+	next_state <= state;
+	next_mem_state <= mem_state;
+	m_read <= '0';
+	m_write <= '0';
+	m_addr <= 0;
+	m_writedata <= "00000000";
+	s_waitrequest <= '1';
+	
 	case state is
 		when IDLE =>
 			s_waitrequest <= '1';
@@ -133,7 +147,7 @@ begin
 		--within this state there are 16 sub states, these represent stalling
 		-- because memory only output bytes and we only write 4 words at a time we must go through all the bytes.
 		
-			case next_mem_state is 
+			case mem_state is 
 
 				when mem_1 => 
 					m_addr <= to_integer(unsigned(std_logic_vector'(s_addr(14 downto 4) & "0000")));
@@ -141,6 +155,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_2;
+						m_read <= '0';
 						cache_block(block_number)(7 downto 0) <= m_readdata;
 					else
 						next_mem_state <= mem_1;
@@ -152,6 +167,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_3;
+						m_read <= '0';
 						cache_block(block_number)(15 downto 8) <= m_readdata;
 					else
 						next_mem_state <= mem_2;
@@ -163,6 +179,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_4;
+						m_read <= '0';
 						cache_block(block_number)(23 downto 16) <= m_readdata;
 					else
 						next_mem_state <= mem_3;
@@ -174,6 +191,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_5;
+						m_read <= '0';
 						cache_block(block_number)(31 downto 24) <= m_readdata;
 					else
 						next_mem_state <= mem_4;
@@ -185,6 +203,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_6;
+						m_read <= '0';
 						cache_block(block_number)(39 downto 32) <= m_readdata;
 					else
 						next_mem_state <= mem_5;
@@ -196,6 +215,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_7;
+						m_read <= '0';
 						cache_block(block_number)(47 downto 40) <= m_readdata;
 					else
 						next_mem_state <= mem_6;
@@ -207,6 +227,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_8;
+						m_read <= '0';
 						cache_block(block_number)(55 downto 48) <= m_readdata;
 					else
 						next_mem_state <= mem_7;
@@ -218,6 +239,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_9;
+						m_read <= '0';
 						cache_block(block_number)(63 downto 56) <= m_readdata;
 					else
 						next_mem_state <= mem_8;
@@ -229,6 +251,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_10;
+						m_read <= '0';
 						cache_block(block_number)(71 downto 64) <= m_readdata;
 					else
 						next_mem_state <= mem_9;
@@ -240,6 +263,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_11;
+						m_read <= '0';
 						cache_block(block_number)(79 downto 72) <= m_readdata;
 					else
 						next_mem_state <= mem_10;
@@ -251,6 +275,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_12;
+						m_read <= '0';
 						cache_block(block_number)(87 downto 80) <= m_readdata;
 					else
 						next_mem_state <= mem_11;
@@ -262,6 +287,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_13;
+						m_read <= '0';
 						cache_block(block_number)(95 downto 88) <= m_readdata;
 					else
 						next_mem_state <= mem_12;
@@ -273,6 +299,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_14;
+						m_read <= '0';
 						cache_block(block_number)(103 downto 96) <= m_readdata;
 					else
 						next_mem_state <= mem_13;
@@ -284,6 +311,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_15;
+						m_read <= '0';
 						cache_block(block_number)(111 downto 104) <= m_readdata;
 					else
 						next_mem_state <= mem_14;
@@ -295,6 +323,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_16;
+						m_read <= '0';
 						cache_block(block_number)(119 downto 112) <= m_readdata;
 					else
 						next_mem_state <= mem_15;
@@ -306,7 +335,7 @@ begin
 					next_state <= MISS;
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_1;
-						
+	
 						m_read <= '0';
 						cache_block(block_number)(135 downto 134) <= "10"; 
 						cache_block(block_number)(127 downto 120) <= m_readdata;
@@ -345,7 +374,7 @@ begin
 		when EVICTION =>
 		--in this state we are writing to cache to save a dirty line
 
-			case next_mem_state is 
+			case mem_state is 
 
 				when mem_1 => 
 					m_addr <= to_integer(unsigned(std_logic_vector'( 
@@ -357,6 +386,7 @@ begin
 					m_writedata <= cache_block(block_number)(7 downto 0);
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_2;
+						m_write <= '0';
 					else
 						next_mem_state <= mem_1;
 					end if;
@@ -371,6 +401,7 @@ begin
 					m_writedata <= cache_block(block_number)(15 downto 8);
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_3;
+						m_write <= '0';
 					else
 						next_mem_state <= mem_2;
 					end if;
@@ -385,6 +416,7 @@ begin
 					m_writedata <= cache_block(block_number)(23 downto 16);
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_4;
+						m_write <= '0';
 					else
 						next_mem_state <= mem_3;
 					end if;
@@ -399,6 +431,7 @@ begin
 					m_writedata <= cache_block(block_number)(31 downto 24);
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_5;
+						m_write <= '0';
 					else
 						next_mem_state <= mem_4;
 					end if;
@@ -413,6 +446,7 @@ begin
 					m_writedata <= cache_block(block_number)(39 downto 32);
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_6;
+						m_write <= '0';
 					else
 						next_mem_state <= mem_5;
 					end if;
@@ -427,6 +461,7 @@ begin
 					m_writedata <= cache_block(block_number)(47 downto 40);
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_7;
+						m_write <= '0';
 					else
 						next_mem_state <= mem_6;
 					end if;
@@ -441,6 +476,7 @@ begin
 					m_writedata <= cache_block(block_number)(55 downto 48);
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_8;
+						m_write <= '0';
 					else
 						next_mem_state <= mem_7;
 					end if;
@@ -455,6 +491,7 @@ begin
 					m_writedata <= cache_block(block_number)(63 downto 56);
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_9;
+						m_write <= '0';
 					else
 						next_mem_state <= mem_8;
 					end if;
@@ -469,6 +506,7 @@ begin
 					m_writedata <= cache_block(block_number)(71 downto 64);
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_10;
+						m_write <= '0';
 					else
 						next_mem_state <= mem_9;
 					end if;
@@ -483,6 +521,7 @@ begin
 					m_writedata <= cache_block(block_number)(79 downto 72);
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_11;
+						m_write <= '0';
 					else
 						next_mem_state <= mem_10;
 					end if;
@@ -497,6 +536,7 @@ begin
 					m_writedata <= cache_block(block_number)(87 downto 80);
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_12;
+						m_write <= '0';
 					else
 						next_mem_state <= mem_11;
 					end if;
@@ -511,6 +551,7 @@ begin
 					m_writedata <= cache_block(block_number)(95 downto 88);
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_13;
+						m_write <= '0';
 					else
 						next_mem_state <= mem_12;
 					end if;
@@ -525,6 +566,7 @@ begin
 					m_writedata <= cache_block(block_number)(103 downto 96);
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_14;
+						m_write <= '0';
 					else
 						next_mem_state <= mem_13;
 					end if;
@@ -539,6 +581,7 @@ begin
 					m_writedata <= cache_block(block_number)(111 downto 104);
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_15;
+						m_write <= '0';
 					else
 						next_mem_state <= mem_14;
 					end if;
@@ -553,6 +596,7 @@ begin
 					m_writedata <= cache_block(block_number)(119 downto 112);
 					if (m_waitrequest = '0') then
 						next_mem_state <= mem_16;
+						m_write <= '0';
 					else
 						next_mem_state <= mem_15;
 					end if;

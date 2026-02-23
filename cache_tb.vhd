@@ -9,7 +9,7 @@ architecture behavior of cache_tb is
 
 component cache is
 generic(
-    ram_size : INTEGER := 32768;
+    ram_size : INTEGER := 32768
 );
 port(
     clock : in std_logic;
@@ -114,8 +114,28 @@ end process;
 
 test_process : process
 begin
-
+----------------------------------------------------------------------------
 -- put your tests here
+-- READ FROM MEMORY TEST
+  s_addr      <= (others => '0');
+  s_read      <= '0';
+  s_write     <= '0';
+  s_writedata <= (others => '0');
+  reset <= '1';
+  wait for 2*clk_period;
+  reset <= '0';
+  wait for 2*clk_period;
+
+  --READ at address 0x00000100
+  s_addr <= x"00000100";
+  s_read <= '1';
+
+  wait until s_waitrequest = '0';
+  wait until rising_edge(s_waitrequest);
+
+  s_read <= '0';
+
+  wait;
 	
 end process;
 	
