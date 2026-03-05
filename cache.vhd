@@ -7,11 +7,7 @@ generic(
 	ram_size : INTEGER := 32768; -- Bytes
 	cache_size_byte : INTEGER := 512; -- Bytes
 	num_of_blocks: INTEGER := 32;
-	block_size : INTEGER := 128; -- bits
-	
-	cache_delay : time := 10 ns;
-	clock_period : time := 1 ns
-
+	block_size : INTEGER := 128 -- bits
 );
 port(
 	clock : in std_logic;
@@ -51,10 +47,9 @@ architecture arch of cache is
 --access the below array simply like this cache_block(block #)(line indices)
 TYPE CACHE IS ARRAY(num_of_blocks-1 downto 0) OF STD_LOGIC_VECTOR(135 downto 0);
 signal cache_block: CACHE; 
-signal write_waitreq_reg: STD_LOGIC := '1';
-signal read_waitreq_reg: STD_LOGIC := '1';
 
-type state_type is (IDLE,READING,READ_READY,WRITING,MISS,READ_HIT,WRITE_HIT, EVICTION);
+
+type state_type is (IDLE,READING,READ_READY,WRITING,MISS,READ_HIT,WRITE_HIT, WRITE_READY, EVICTION);
 signal state: state_type;
 signal next_state: state_type;
 
@@ -88,8 +83,7 @@ end process;
 
 -- The simulation was not updating the state so I added other triggers
 avalon_structure_proc : process (state, reset, s_addr, s_read, s_write, s_writedata,
- m_waitrequest, m_readdata, cache_block, block_number, Read_NotWrite, next_mem_state,
-  reset)
+ m_waitrequest, m_readdata, cache_block, block_number, Read_NotWrite, next_mem_state)
 
 begin
 -- The simulation was showing U for these signals, adding default values solved this
@@ -118,9 +112,13 @@ begin
 			
 		when READING =>	
 			--condition here must be combinational logic between s_addr(31 downto something) and cacheArray(something downto 31 less than something)
-			if cache_block(block_number)(135) = '1' and cache_block(block_number)(133 downto 128) = s_addr(14 downto 9) then -- valid plus tag match 
+			if cache_block(block_number)(135) = '1' and 
+			cache_block(block_number)(133 downto 128) = s_addr(14 downto 9) then -- valid and tag match 
 				next_state <= READ_HIT;
-			elsif (cache_block(block_number)(135) = '1' and cache_block(block_number)(133 downto 128) /= s_addr(14 downto 9) and cache_block(block_number)(135) = '1') then  --tag mismatch and dirty
+				
+			elsif (cache_block(block_number)(135) = '1' and -- Valid
+			cache_block(block_number)(133 downto 128) /= s_addr(14 downto 9) and --tag mismatch
+			cache_block(block_number)(134) = '1') then  -- AND DIRTY
 				--write to main memory
 				next_state <= EVICTION;
 				next_mem_state <= mem_1;
@@ -337,7 +335,7 @@ begin
 						next_mem_state <= mem_1;
 	
 						m_read <= '0';
-						cache_block(block_number)(135 downto 134) <= "10"; 
+						cache_block(block_number)(135 downto 134) <= "10";  -- Valid = 1 & Dirty = 0
 						cache_block(block_number)(127 downto 120) <= m_readdata;
 						
 						if (Read_NotWrite = '1') then
@@ -357,6 +355,7 @@ begin
 						end if;
 						
 					else
+						-- reading is not done (m_waitrequest = 1)
 						next_mem_state <= mem_16;
 					end if;
 
@@ -364,12 +363,15 @@ begin
 					next_mem_state <= mem_1;
 					next_state <= IDLE;
 
-			end case;			
+			end case;  -- mem_state		
 				
 		when READ_READY =>
 			--this state is to create a 1 clock cycle buffer to read the read_data
 			next_state <= IDLE;
-
+		
+		when WRITE_READY =>
+			--this state is to create a 1 clock cycle buffer to communicate writing is over
+			next_state <= IDLE;
 		
 		when EVICTION =>
 		--in this state we are writing to cache to save a dirty line
@@ -614,8 +616,7 @@ begin
 						
 						next_state <= MISS;
 						m_write <= '0';
-						s_waitrequest <= '0';
-						cache_block(block_number)(135) <= '0'; --set dirty to 0
+						cache_block(block_number)(134) <= '0'; --set dirty to 0
 					else
 						next_mem_state <= mem_16;
 					end if;
@@ -629,15 +630,20 @@ begin
 		
 		when WRITING =>
 			
-			if cache_block(block_number)(135) = '1' and cache_block(block_number)(133 downto 128) = s_addr(14 downto 9) then
+			if cache_block(block_number)(135) = '1' and 
+			cache_block(block_number)(133 downto 128) = s_addr(14 downto 9) then
 				next_state <= WRITE_HIT;
-			elsif cache_block(block_number)(135) = '1' and cache_block(block_number)(133 downto 128) /= s_addr(14 downto 9) and cache_block(block_number)(135) = '1' then
+				
+			elsif cache_block(block_number)(135) = '1' and 
+			cache_block(block_number)(133 downto 128) /= s_addr(14 downto 9) and -- Tag mismatch
+			 cache_block(block_number)(134) = '1' then -- DIRTY
 				next_state <= EVICTION;
 			else -- valid = 0,	
 				next_state <= MISS;
 			end if;
 		
 		when WRITE_HIT =>
+			next_state <= WRITE_READY; -- Keeps waitrequest low for 1 cc
 			--write to cache 
 			--set dirty bit to 1
 			if s_addr(3 downto 2) = "00" then
@@ -649,10 +655,12 @@ begin
 			elsif s_addr(3 downto 2) = "11" then
 				cache_block(block_number)(127 downto 96) <= s_writedata;
 			end if;
-			cache_block(block_number)(135) <= '1';
+			s_waitrequest <= '0'; -- Done with the read operation
+			cache_block(block_number)(134) <= '1'; -- Set Dirty to 1
 			
 	end case;
 end process avalon_structure_proc;
 
 
 end arch;
+
