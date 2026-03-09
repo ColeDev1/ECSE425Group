@@ -138,11 +138,11 @@ begin
 --=======================================================================================================
 	-- Test Case Execution:
 	
-	--Note: We can check rising_edge(waitrequest) to check for next time we can read/write to $
+	--Note: We can check falling_edge(waitrequest) to check for next time we can read/write to $
 	-- For each of the 10 tests, we will:
 	-- 1) Check that waitrequest signal is high (meaning its ready to accept a new operation initially)
 	-- 2) Setup read or write operation
-	-- 3) wait until rising_edge(waitrequest) (Indicating read data valid or write request completed)
+	-- 3) wait until falling_edge(waitrequest) (Indicating read data valid or write request completed)
 	-- 4) assert to check that the expected behavior occured...
 	-- 5) Additionally, on dirty evictions, we will check to make sure MM is updated accordingly
 --=======================================================================================================
@@ -153,21 +153,21 @@ begin
 	s_addr <= std_logic_vector(to_unsigned(B, 32));
 	s_writedata <= std_logic_vector(to_unsigned(54, 32));
 	s_write <= '1';
-	wait until rising_edge(s_waitrequest);
+	wait until falling_edge(s_waitrequest);
 	
 	--Read from cache at location B to verify data is as expected...
 	s_write <= '0';
 	s_read <= '1';
-	wait until rising_edge(s_waitrequest);
-	assert s_readdata = X"00000036"; report "Writing 00 Tag Mismatch Case: Data not properly written" severity error;
+	wait until falling_edge(s_waitrequest);
 	s_read <= '0';
+	assert s_readdata = X"00000036" report "Writing 00 Tag Mismatch Case: Data not properly written" severity error;
 --=======================================================================================================	
 	
 	--Test Case 2:
 	--Reading "00" Tag Mismatch Case: Reading from  memory address A not yet in $
 	s_addr <= std_logic_vector(to_unsigned(A, 32));
 	s_read <= '1';
-	wait until rising_edge(s_waitrequest);
+	wait until falling_edge(s_waitrequest);
 	s_read <= '0';
 	--Junk data at this memory location. Only reason we know the value is because we know how the SRAM is initialized in memory.vhd
 	--ram_block(i) <= std_logic_vector(to_unsigned(i, 8)), so for memory location A, 
@@ -179,7 +179,7 @@ begin
 	--Reading "10" Tag Match Case: Reading from memory address A already in $
 	s_addr <= std_logic_vector(to_unsigned(A, 32));
 	s_read <= '1';
-	wait until rising_edge(s_waitrequest);
+	wait until falling_edge(s_waitrequest);
 	s_read <= '0';
 	assert s_readdata = X"13121110" report "Reading 10 Tag Match Case: Cache data does not match" severity error;
 
@@ -190,12 +190,12 @@ begin
 	s_addr <= std_logic_vector(to_unsigned(A, 32));
 	s_writedata <= std_logic_vector(to_unsigned(33, 32));
 	s_write <= '1';
-	wait until rising_edge(s_waitrequest);
+	wait until falling_edge(s_waitrequest);
 	
 	--Reading from the $ location to ensure data written properly
 	s_write <= '0';
 	s_read <= '1';
-	wait until rising_edge(s_waitrequest);
+	wait until falling_edge(s_waitrequest);
 	s_read <= '0';
 	assert s_readdata = X"00000021" report "Writing 10 Tag Match Case: Cache data not updated properly" severity error;
 --=======================================================================================================	
@@ -204,7 +204,7 @@ begin
 	--Reading "11" Tag Match Case: Reading from memory address A that is dirty
 	s_addr <= std_logic_vector(to_unsigned(A, 32));
 	s_read <= '1';
-	wait until rising_edge(s_waitrequest);
+	wait until falling_edge(s_waitrequest);
 	s_read <= '0';
 	assert s_readdata = X"00000021" report "Reading 11 Tag Match Case: Cache data does not match" severity error;
 --=======================================================================================================	
@@ -214,12 +214,12 @@ begin
 	s_addr <= std_logic_vector(to_unsigned(A, 32));
 	s_writedata <= std_logic_vector(to_unsigned(34, 32));
 	s_write <= '1';
-	wait until rising_edge(s_waitrequest);
+	wait until falling_edge(s_waitrequest);
 	
 	--Reading from the $ location to ensure data written properly
 	s_write <= '0';
 	s_read <= '1';
-	wait until rising_edge(s_waitrequest);
+	wait until falling_edge(s_waitrequest);
 	s_read <= '0';
 	assert s_readdata = X"00000022" report "Writing 11 Tag Match Case: Cache not updated properly" severity error;
 --=======================================================================================================	
@@ -228,7 +228,7 @@ begin
 	--Reading "11" Tag Mismatch Case: Reading from memory address C, need to update $ (dirty EVICTION)
 	s_addr <= std_logic_vector(to_unsigned(C, 32));
 	s_read <= '1';
-	wait until rising_edge(s_waitrequest);
+	wait until falling_edge(s_waitrequest);
 	s_read <= '0';
 	--Checking cache properly updated
 	assert s_readdata = X"13121110" report "Reading 11 Tag Mismatch Case: Cache not updated properly" severity error;
@@ -239,7 +239,7 @@ begin
 	--Reading "10" Tag Mismatch Case: Reading from memory address A, but tag mismatch on clean block in $ (clean EVICTION)
 	s_addr <= std_logic_vector(to_unsigned(A, 32));
 	s_read <= '1';
-	wait until rising_edge(s_waitrequest);
+	wait until falling_edge(s_waitrequest);
 	s_read <= '0';
 	assert s_readdata = X"00000022" report "Reading 10 Tag Mismatch Case: dirty block not updated in MM properly." severity error;
 --=======================================================================================================
@@ -249,12 +249,12 @@ begin
 	s_addr <= std_logic_vector(to_unsigned(C, 32));
 	s_writedata <= std_logic_vector(to_unsigned(83, 32));
 	s_write <= '1';
-	wait until rising_edge(s_waitrequest);
+	wait until falling_edge(s_waitrequest);
 	
 	--Reading from the memory location to ensure data written properly
 	s_write <= '0';
 	s_read <= '1';
-	wait until rising_edge(s_waitrequest);
+	wait until falling_edge(s_waitrequest);
 	s_read <= '0';
 	assert s_readdata = X"00000053" report "Writing 10 Tag Mismatch Case: Data not updated properly" severity error;
 --=======================================================================================================
@@ -264,12 +264,12 @@ begin
 	s_addr <= std_logic_vector(to_unsigned(A, 32));
 	s_writedata <= std_logic_vector(to_unsigned(35, 32));
 	s_write <= '1';
-	wait until rising_edge(s_waitrequest);
+	wait until falling_edge(s_waitrequest);
 	
 	--Reading from the $ location to ensure data written properly
 	s_write <= '0';
 	s_read <= '1';
-	wait until rising_edge(s_waitrequest);
+	wait until falling_edge(s_waitrequest);
 	s_read <= '0';
 	assert s_readdata = X"00000023" report "Writing 11 Tag Mismatch Case: Data not updated properly" severity error;
 	
@@ -277,7 +277,7 @@ begin
 	--Read block C back into cache. If MM properly updated, the read block will be what was saved previously (0x53)
 	s_addr <= std_logic_vector(to_unsigned(C, 32));
 	s_read <= '1';
-	wait until rising_edge(s_waitrequest);
+	wait until falling_edge(s_waitrequest);
 	s_read <= '0';
 	assert s_readdata = X"00000053" report "Writing 11 Tag Mismatch Case: MM not properly updated due to dirty EVICTION" severity error;
 --=======================================================================================================	
